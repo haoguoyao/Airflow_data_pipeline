@@ -1,6 +1,6 @@
 import boto3
 import s3.s3_settings as s3_settings
-from s3_connection import s3_client
+from s3.s3_connection import s3_client
 def upload_to_s3(file_path, bucket_name, object_name):
     s3_client.upload_file(file_path, bucket_name, object_name)
 
