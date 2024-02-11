@@ -1,0 +1,21 @@
+Feb 10:
+
+Create S3 bucket for coco file
+coco2024
+Create user
+aws_access_key_id="AKIA3FLDXUXEGRUYOWB2"
+aws_secret_access_key="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"
+region_name="us-west-1"
+
+Create EC2 instance
+ssh -i keypair.pem admin@ec2-52-53-186-227.us-west-1.compute.amazonaws.com
+
+
+Dowload coco dataset, upload to S3
+wget http://images.cocodataset.org/zips/train2017.zip
+unzip train2017.zip -d train2017
+aws s3 cp train2017 s3://coco2024/coco_original/train2017/ --recursive
+Get 128Gb Amazon Elastic Block Store (EBS).
+
+
+create S3 connection through python
