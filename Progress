@@ -12,8 +12,15 @@ ssh -i keypair.pem admin@ec2-52-53-186-227.us-west-1.compute.amazonaws.com
 Dowload coco dataset, upload to S3
 wget http://images.cocodataset.org/zips/train2017.zip
 unzip train2017.zip -d train2017
+wget http://images.cocodataset.org/zips/test2017.zip
+unzip train2017.zip -d train2017
 aws s3 cp train2017 s3://coco2024/coco_original/train2017/ --recursive
 Get 128Gb Amazon Elastic Block Store (EBS).
 
-
 create S3 connection through python
+
+Feb 11:
+using sqlalchemy create 3 tables for the cocodataset, images, annotations, categories
+write a python script to write the data to the tables
+write code to retrieve images from the tables and S3 bucket
+create pydantic models, create helper functions to convert the data to the models

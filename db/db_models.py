@@ -1,12 +1,12 @@
-from sqlalchemy import create_engine, Column, Integer, Float, String, ForeignKey,JSON,DateTime
+from sqlalchemy import create_engine, Column, Integer, Float, String, ForeignKey,JSON,DateTime,BigInteger
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
+import db.db_connections as db_connection
 import datetime
 Base = declarative_base()
 
 
-
-class Image(Base):
+class ImageDB(Base):
     __tablename__ = 'images'
     id = Column(Integer, primary_key=True)
     width = Column(Integer)
@@ -19,11 +19,11 @@ class Image(Base):
 
     annotations = relationship("Annotation", back_populates="image")
 
-class Annotation(Base):
+class AnnotationDB(Base):
     __tablename__ = 'annotations'
-    id = Column(Integer, primary_key=True)
-    image_id = Column(Integer, ForeignKey('images.id'))
-    category_id = Column(Integer)
+    id = Column(BigInteger, primary_key=True)
+    image_id = Column(Integer, ForeignKey('images.id'), nullable=False)
+    category_id = Column(Integer, ForeignKey('categories.id'), nullable=False)
     area = Column(Float)
     bbox = Column(String(255))  # Consider storing as JSON or creating separate columns
     iscrowd = Column(Integer)
@@ -32,7 +32,7 @@ class Annotation(Base):
     image = relationship("Image", back_populates="annotations")
     category = relationship("Category", back_populates="annotations")
 
-class Category(Base):
+class CategoryDB(Base):
     __tablename__ = 'categories'
     id = Column(Integer, primary_key=True)
     name = Column(String(50))
@@ -41,18 +41,17 @@ class Category(Base):
     annotations = relationship("Annotation", back_populates="category")
 
 
-# Connect to your MySQL database
-# Format: mysql+mysqlconnector://<user>:<password>@<host>/<dbname>
-engine = create_engine('mysql+mysqlconnector://username:password@localhost/yourdatabase')
-Base.metadata.create_all(engine)  # Creates tables if they don't already exist
-Session = sessionmaker(bind=engine)
-session = Session()
 
-def store_annotations(annotations):
-    for annotation in annotations:
-        # Convert bbox list to a string for storage; you might choose a different method
+
+def create_tables():
+    engine = db_connection.get_db_engine()
+    Base.metadata.create_all(engine)  # Creates tables if they don't already exist
+
+def store_annotations(annotations,session,batch_size=1000):
+    batch = []
+    for i, annotation in enumerate(annotations, 1):
         bbox_str = ','.join(map(str, annotation['bbox']))
-        new_annotation = Annotation(
+        new_annotation = AnnotationDB(
             id=annotation['id'],
             image_id=annotation['image_id'],
             category_id=annotation['category_id'],
@@ -61,22 +60,44 @@ def store_annotations(annotations):
             iscrowd=annotation['iscrowd'],
             segmentation=annotation.get('segmentation', None)  # Assuming segmentation is optional
         )
-        session.add(new_annotation)
+        batch.append(new_annotation)
+        
+        if i % batch_size == 0:
+            session.bulk_save_objects(batch)
+            session.commit()
+            batch = []  # Reset the batch
+
+    # Insert any remaining annotations
+    if batch:
+        session.bulk_save_objects(batch)
+        session.commit()
+
+def store_images(images,session):
+    for image in images:
+        new_image = ImageDB(
+            id=image['id'],
+            width=image['width'],
+            height=image['height'],
+            file_name=image['file_name'],
+            license=image.get('license', None),
+            flickr_url=image.get('flickr_url', None),
+            coco_url=image.get('coco_url', None),
+            date_captured=image.get('date_captured', None)
+        )
+        session.add(new_image)
 
     try:
         session.commit()
     except Exception as e:
-        print(f"An error occurred while inserting annotations: {e}")
+        print(f"An error occurred while inserting images: {e}")
         session.rollback()
     finally:
         session.close()
 
-
-
-def store_categories(categories):
+def store_categories(categories,session):
     for category in categories:
         # Create a new Category object for each category in the list
-        new_category = Category(
+        new_category = CategoryDB(
             id=category["id"],
             name=category["name"],
             supercategory=category.get("supercategory")  # .get() returns None if 'supercategory' doesn't exist
@@ -90,3 +111,10 @@ def store_categories(categories):
         session.rollback()  # Roll back the changes on error
     finally:
         session.close()  # Close the session whether or not an error occurred
+
+def empty_tables(session):
+    session.query(AnnotationDB).delete()
+    session.query(ImageDB).delete()
+    session.query(CategoryDB).delete()
+    session.commit()
+    session.close()

@@ -1,4 +1,4 @@
-from coco.models import COCODataset
+from coco.coco_models import COCODataset
 import json
 from pydantic import ValidationError
 
