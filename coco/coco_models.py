@@ -36,6 +36,13 @@ class Annotation(BaseModel):
             iscrowd=self.iscrowd,
             segmentation=self.segmentation
         )
+    def convert_annotation_to_csv(self):
+        csv_annotation = {
+        'image_id': self.image_id,
+        'file_name': file_name,
+        'category_id': self.category_id,
+        **self.bbox.model_dump(),
+    }
 
 
 class Image(BaseModel):
@@ -73,7 +80,6 @@ class Image(BaseModel):
 
 class COCODataset(BaseModel):
     images: List[Image]
-    annotations: List[Annotation]
     categories: List[Category]
 
 

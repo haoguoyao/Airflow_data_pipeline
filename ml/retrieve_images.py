@@ -14,3 +14,8 @@ def get_random_images(numb_images=100):
 # for image in images:
 #     image_name = url.split('/')[-1]  # Extract image name from the URL
 #     s3.download_file('<your_bucket_name>', image_name, f'<local_directory_path>/{image_name}')
+
+if __name__ == "__main__":
+    session = get_db_session()
+    random_images = session.query(ImageDB).order_by(func.rand()).limit(100).all()
+    print(len(random_images))

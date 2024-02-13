@@ -17,7 +17,7 @@ class ImageDB(Base):
     coco_url = Column(String(255), nullable=True)
     date_captured = Column(DateTime, default=datetime.datetime.utcnow)
 
-    annotations = relationship("Annotation", back_populates="image")
+    annotations = relationship("AnnotationDB", back_populates="image")
 
 class AnnotationDB(Base):
     __tablename__ = 'annotations'
@@ -29,8 +29,8 @@ class AnnotationDB(Base):
     iscrowd = Column(Integer)
     segmentation = Column(JSON)  # Use JSON for MySQL versions that support it
 
-    image = relationship("Image", back_populates="annotations")
-    category = relationship("Category", back_populates="annotations")
+    image = relationship("ImageDB", back_populates="annotations")
+    category = relationship("CategoryDB", back_populates="annotations")
 
 class CategoryDB(Base):
     __tablename__ = 'categories'
@@ -38,9 +38,7 @@ class CategoryDB(Base):
     name = Column(String(50))
     supercategory = Column(String(50), nullable=True)
 
-    annotations = relationship("Annotation", back_populates="category")
-
-
+    annotations = relationship("AnnotationDB", back_populates="category")
 
 
 def create_tables():
