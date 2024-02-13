@@ -7,8 +7,8 @@ from s3.s3_access import download_image_from_s3
 def get_random_images(numb_images=100):
     session = get_db_session()
     random_images = session.query(ImageDB).order_by(func.rand()).limit(numb_images).all()
-    for image in random_images:
-        download_image_from_s3(image.file_name)
+    # for image in random_images:
+    #     download_image_from_s3(image.file_name)
     return random_images
 
 # for image in images:
