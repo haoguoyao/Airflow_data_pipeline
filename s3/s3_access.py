@@ -2,6 +2,7 @@
 import s3.s3_settings as s3_settings
 from s3.s3_connection import s3_client
 from botocore.exceptions import NoCredentialsError
+from s3.s3_settings import bucket_name, S3_FOLDER
 
 def upload_to_s3(file_name, bucket_name, object_name):
     try:
@@ -20,7 +21,7 @@ def download_from_s3(bucket_name, object_name, file_name):
     return True
 
 
-def download_image_from_s3(file_name, local_path='downloaded_images/'):
+def download_image_from_s3(file_name, local_path='ml_model/downloaded_images/'):
     """
     Download an image from S3 to a local directory.
 
@@ -34,12 +35,15 @@ def download_image_from_s3(file_name, local_path='downloaded_images/'):
         
         # Full path where the image will be saved
         local_file_path = os.path.join(local_path, file_name)
+        # print(local_file_path)
         
         # Full S3 key (path) of the image
         s3_key = f"{S3_FOLDER}{file_name}" if S3_FOLDER else file_name
-        
+        print(s3_key)
+        print(S3_FOLDER)
+
         # Download the file
-        s3_client.download_file(S3_BUCKET, s3_key, local_file_path)
+        s3_client.download_file(bucket_name, s3_key, local_file_path)
         print(f"Downloaded {file_name} to {local_file_path}")
     except Exception as e:
         print(f"Error downloading {file_name}: {e}")

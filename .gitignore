@@ -1,3 +1,4 @@
 s3/s3_settings.py
 .venv/*
 db/db_settings.py
+*.csv

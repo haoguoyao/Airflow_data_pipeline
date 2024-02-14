@@ -14,7 +14,11 @@ wget http://images.cocodataset.org/zips/train2017.zip
 unzip train2017.zip -d train2017
 wget http://images.cocodataset.org/zips/test2017.zip
 unzip train2017.zip -d train2017
-aws s3 cp train2017 s3://coco2024/coco_original/train2017/ --recursive
+
+wget http://images.cocodataset.org/zips/val2017.zip
+unzip val2017.zip -d val2017
+
+aws s3 cp val2017 s3://coco2024/coco_original/ --recursive
 Get 128Gb Amazon Elastic Block Store (EBS).
 
 create S3 connection through python
@@ -24,3 +28,17 @@ using sqlalchemy create 3 tables for the cocodataset, images, annotations, categ
 write a python script to write the data to the tables
 write code to retrieve images from the tables and S3 bucket
 create pydantic models, create helper functions to convert the data to the models
+
+install airflow, test one dag
+reteive images to folder, test image using onnx model
+
+
+Optional: generate poetry.lock file
+pip install pipx
+pipx ensurepath
+pipx install poetry
+poetry init
+poetry add $(cat requirements.txt | tr '\n' ' ')
+
+
+pip install pipdeptree

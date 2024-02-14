@@ -38,3 +38,27 @@ if __name__=="__main__":
         print("S3 client initialized successfully.")
     else:
         print("S3 client initialization failed.")
+    # import boto3
+    # from urllib.parse import urlparse
+
+    # def download_s3_file(s3_url, local_path):
+    #     # Parse the S3 URL to extract bucket name and object key
+    #     parsed_url = urlparse(s3_url)
+    #     bucket_name = parsed_url.netloc
+    #     object_key = parsed_url.path.lstrip('/')
+        
+    #     # Create an S3 client
+
+    #     # Download the file from S3
+    #     print(object_key)
+    #     print(bucket_name)
+    #     try:
+    #         s3_client.download_file(bucket_name, object_key, local_path)
+    #         print(f"File downloaded successfully to {local_path}")
+    #     except Exception as e:
+    #         print(f"Error downloading file: {e}")
+
+    # # Example usage
+    # s3_url = "s3://coco2024/coco_original/train2017/000000000009.jpg"
+    # local_path = "/Users/hao/Desktop/github/a.jpg"
+    # download_s3_file(s3_url, local_path)

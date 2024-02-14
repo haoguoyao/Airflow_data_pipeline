@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Union, List, Dict, Optional
 from pydantic import BaseModel, validator, Field
 from db.db_models import AnnotationDB, ImageDB, CategoryDB
 import datetime
@@ -6,6 +6,9 @@ class Category(BaseModel):
     id: int
     name: str
     supercategory: Optional[str] = None
+    def model_dump_dict(self) -> dict:
+        data = super().model_dump()
+        return data
 
 class AnnotationBox(BaseModel):
     x_min: float
@@ -21,11 +24,19 @@ class Annotation(BaseModel):
     id: int
     image_id: int
     category_id: int
-    segmentation: Optional[List] = None
+    iscrowd: int
+    segmentation: Optional[Union[List, Dict]] = None
     area: float
     bbox: AnnotationBox
-    iscrowd: int
 
+    @validator('segmentation', always=True)
+    def check_segmentation_type(cls, v, values):
+        if values['iscrowd'] == 0 and not isinstance(v, List):
+            raise ValueError('segmentation must be a List when iscrowd is 0')
+        elif values['iscrowd'] == 1 and not isinstance(v, Dict):
+            raise ValueError('segmentation must be a Dict when iscrowd is 1')
+        return v
+    
     def convert_annotation_to_sql(self) -> AnnotationDB:
         return AnnotationDB(
             id=self.id,
@@ -36,13 +47,16 @@ class Annotation(BaseModel):
             iscrowd=self.iscrowd,
             segmentation=self.segmentation
         )
-    def convert_annotation_to_csv(self):
-        csv_annotation = {
-        'image_id': self.image_id,
-        'file_name': file_name,
-        'category_id': self.category_id,
-        **self.bbox.model_dump(),
-    }
+    def model_dump_dict(self) -> dict:
+        data = super().model_dump()
+        bbox_data = data.pop('bbox')  # Remove 'bbox' and handle separately
+        # Include bbox details as separate fields
+        data['bbox_x_min'] = bbox_data['x_min']
+        data['bbox_y_min'] = bbox_data['y_min']
+        data['bbox_width'] = bbox_data['width']
+        data['bbox_height'] = bbox_data['height']
+        return data
+
 
 
 class Image(BaseModel):
@@ -76,6 +90,12 @@ class Image(BaseModel):
             image.annotations = [ann.convert_annotation_to_sql() for ann in self.annotations]
         
         return image
+    def convert_annotation_to_csv(self):
+        csv_annotation = {
+        'image_id': self.image_id,
+        'category_id': self.category_id,
+        **self.bbox.model_dump(),
+    }
 
 
 class COCODataset(BaseModel):
@@ -83,7 +103,7 @@ class COCODataset(BaseModel):
     categories: List[Category]
 
 
-def convert_annotation_box_from_sql_to_pydantic(bbox_str):
+def convert_annotation_box_from_sql_to_pydantic(bbox_str) -> AnnotationBox:
     """
     Converts a bounding box string from the database to a Pydantic model.
     Assume bbox_str is a comma-separated string: "x_min,y_min,width,height"
@@ -91,7 +111,7 @@ def convert_annotation_box_from_sql_to_pydantic(bbox_str):
     x_min, y_min, width, height = map(float, bbox_str.split(','))
     return AnnotationBox(x_min=x_min, y_min=y_min, width=width, height=height)
 
-def convert_annotation_from_sql_to_pydantic(annotation):
+def convert_annotation_from_sql_to_pydantic(annotation) -> Annotation:
     """
     Convert a single SQLAlchemy Annotation instance to a Pydantic model.
     """
@@ -105,8 +125,15 @@ def convert_annotation_from_sql_to_pydantic(annotation):
         bbox=bbox,
         iscrowd=annotation.iscrowd
     )
+def convert_category_from_sql_to_pydantic(category) -> Category:
 
-def convert_image_from_sql_to_pydantic(image):
+    return Category(
+        id=category.id,
+        name=category.name,
+        supercategory=category.supercategory
+    )
+
+def convert_image_from_sql_to_pydantic(image) -> Image:
     """
     Convert a single SQLAlchemy Image instance to a Pydantic model.
     """
