@@ -20,7 +20,11 @@ def download_images(images):
 #     s3.download_file('<your_bucket_name>', image_name, f'<local_directory_path>/{image_name}')
 
 if __name__ == "__main__":
-    session = get_db_session()
-    random_images = session.query(ImageDB).order_by(func.rand()).limit(10).all()
-    print(len(random_images))
-    download_images(random_images)
+
+    a = get_random_images()
+    print(len(a))
+
+    # session = get_db_session()
+    # random_images = session.query(ImageDB).order_by(func.rand()).limit(10).all()
+    # print(len(random_images))
+    # download_images(random_images)

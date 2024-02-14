@@ -39,8 +39,6 @@ def download_image_from_s3(file_name, local_path='ml_model/downloaded_images/'):
         
         # Full S3 key (path) of the image
         s3_key = f"{S3_FOLDER}{file_name}" if S3_FOLDER else file_name
-        print(s3_key)
-        print(S3_FOLDER)
 
         # Download the file
         s3_client.download_file(bucket_name, s3_key, local_file_path)
