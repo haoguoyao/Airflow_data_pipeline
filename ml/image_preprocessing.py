@@ -3,37 +3,33 @@ from PIL import Image
 import numpy as np
 from coco.coco_models import Annotation, AnnotationBox
 from typing import List, Tuple
+import cv2
 
-def preprocess_image(image_path, target_size: Tuple[int, int]):
-    """
-    Preprocess an image: resize, normalize, and convert to tensor.
-    """
-    # Load the image
-    image = Image.open(image_path).convert("RGB")
-    
-    # Define transformations
-    transform = T.Compose([
-        T.Resize(target_size),  # Resize the image
-        T.ToTensor(),  # Convert the image to a PyTorch tensor
-        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize to ImageNet stats
-    ])
-    
-    # Apply transformations
-    processed_image = transform(image)
-    return processed_image
+def preprocess_image(image, target_size, gt_boxes=None):
+
+    ih, iw = target_size
+    h, w, _ = image.shape
+
+    scale = min(iw/w, ih/h)
+    nw, nh = int(scale * w), int(scale * h)
+    image_resized = cv2.resize(image, (nw, nh))
+
+    image_padded = np.full(shape=[ih, iw, 3], fill_value=128.0)
+    dw, dh = (iw - nw) // 2, (ih-nh) // 2
+    image_padded[dh:nh+dh, dw:nw+dw, :] = image_resized
+    image_padded = image_padded / 255.
+
+    if gt_boxes is None:
+        return image_padded
+
+    else:
+        gt_boxes[:, [0, 2]] = gt_boxes[:, [0, 2]] * scale + dw
+        gt_boxes[:, [1, 3]] = gt_boxes[:, [1, 3]] * scale + dh
+        return image_padded, gt_boxes
+
 
 def adjust_annotation_boxes(image: Image, target_size: Tuple[int, int]) -> List[Annotation]:
-    """
-    Adjusts the bounding boxes of annotations based on the resize target for the given image.
 
-    Args:
-    - image: An instance of Image containing original dimensions.
-    - annotations: A list of Annotation instances to be adjusted.
-    - target_size: A tuple (target_width, target_height) specifying the resize target dimensions.
-
-    Returns:
-    - A list of adjusted Annotation instances.
-    """
     original_width, original_height = image.width, image.height
     target_width, target_height = target_size
 
