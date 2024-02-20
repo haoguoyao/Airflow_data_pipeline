@@ -1,14 +1,17 @@
-# Step 1: Environment Setup
+import os
 import numpy as np
 import onnxruntime as ort
 import cv2
-import torch
-import torchvision
+from scipy import special
+import colorsys
+import random
 from torchvision.ops import nms
 import numpy as np
-from pycocotools.coco import COCO
 from ml.retrieve_images import get_images_local_folder
 from ml.image_preprocessing import preprocess_image
+from db.db_models import store_one_image_prediction
+from s3.s3_access import upload_to_s3
+from s3.s3_settings import bucket_name
 
 def load_model(model_path):
     session = ort.InferenceSession(model_path)
@@ -21,9 +24,6 @@ def run_inference(session, input_name, output_name, processed_image):
     # Run the model
     outputs = session.run([output_name], {input_name: processed_image})
     return outputs[0]
-from scipy import special
-import colorsys
-import random
 
 
 def get_anchors(anchors_path, tiny=False):
@@ -197,16 +197,20 @@ def draw_bbox(image, bboxes, classes=read_class_names("ml_model/coco.names"), sh
 if __name__ == "__main__":
     model_path = 'ml_model/yolov4.onnx'
     sess = ort.InferenceSession(model_path)
-
     outputs = sess.get_outputs()
     output_names = list(map(lambda output: output.name, outputs))
     input_name = sess.get_inputs()[0].name
+    ANCHORS = "ml_model/yolov4_anchors.txt"
+    STRIDES = [8, 16, 32]
+    XYSCALE = [1.2, 1.1, 1.05]
 
+    ANCHORS = get_anchors(ANCHORS)
+    STRIDES = np.array(STRIDES)
 
     for image in get_images_local_folder(folder_path="ml_model/downloaded_images"):
 
         input_size = 416
-
+ 
         original_image = cv2.imread(image)
         original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
         original_image_size = original_image.shape[:2]
@@ -216,19 +220,12 @@ if __name__ == "__main__":
         detections = sess.run(output_names, {input_name: image_data})
         print("Output shape:", list(map(lambda detection: detection.shape, detections)))
 
-
-        ANCHORS = "ml_model/yolov4_anchors.txt"
-        STRIDES = [8, 16, 32]
-        XYSCALE = [1.2, 1.1, 1.05]
-
-        ANCHORS = get_anchors(ANCHORS)
-        STRIDES = np.array(STRIDES)
-
         pred_bbox = postprocess_bbbox(detections, ANCHORS, STRIDES, XYSCALE)
         bboxes = postprocess_boxes(pred_bbox, original_image_size, input_size, 0.25)
         bboxes = nms(bboxes, 0.213, method='nms')
-        image = draw_bbox(original_image, bboxes)
-        cv2.imwrite('path_to_output_image.jpg', image)
+        image_with_box = draw_bbox(original_image, bboxes)
 
-
-        break
+        store_one_image_prediction({'file_name':os.path.basename(image),'prediction':bboxes})
+        image_local_path = 'ml_model/yolov4_output/'+os.path.basename(image)
+        cv2.imwrite(image_local_path, image_with_box)
+        upload_to_s3(image_local_path,bucket_name,'coco_yolov4_result/'+os.path.basename(image))

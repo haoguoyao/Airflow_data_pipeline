@@ -21,7 +21,10 @@ class ImageDB(Base):
 
     annotations = relationship("AnnotationDB", back_populates="image")
 
-
+class Image_predictionDB(Base):
+    __tablename__ = 'images_prediction'
+    file_name = Column(String(255), primary_key=True)
+    prediction = Column(JSON)
 
 class AnnotationDB(Base):
     __tablename__ = 'annotations'
@@ -49,8 +52,34 @@ class CategoryDB(Base):
 def create_tables():
     engine = db_connection.get_db_engine()
     Base.metadata.create_all(engine)  # Creates tables if they don't already exist
+
+
+import json
+
+def store_one_image_prediction(image_prediction):
+    prediction_data = [prediction.tolist() for prediction in image_prediction['prediction']]
+    prediction_JSON = json.dumps(prediction_data)
+
+
+    session = db_connection.get_db_session()
+    new_image_prediction = Image_predictionDB(
+        file_name=image_prediction['file_name'],
+        prediction=prediction_JSON
+    )
+    session.add(new_image_prediction)
+
+    try:
+        session.commit()
+    except Exception as e:
+        print(f"An error occurred while inserting image predictions: {e}")
+        session.rollback()
+    finally:
+        session.close()
+
+
 class Store_from_original:
-    def store_annotations(self,annotations,session,batch_size=1000):
+    def store_annotations(self,annotations,batch_size=1000):
+        session = db_connection.get_db_session()
         batch = []
         for i, annotation in enumerate(annotations, 1):
             bbox_str = ','.join(map(str, annotation['bbox']))
@@ -74,8 +103,10 @@ class Store_from_original:
         if batch:
             session.bulk_save_objects(batch)
             session.commit()
+        session.close()
 
-    def store_images(self,images,session):
+    def store_images(self,images):
+        session = db_connection.get_db_session()
         for image in images:
             new_image = ImageDB(
                 id=image['id'],
@@ -96,8 +127,10 @@ class Store_from_original:
             session.rollback()
         finally:
             session.close()
+    
 
-    def store_categories(self,categories,session):
+    def store_categories(self,categories):
+        session = db_connection.get_db_session()
         for category in categories:
             # Create a new Category object for each category in the list
             new_category = CategoryDB(
@@ -115,9 +148,14 @@ class Store_from_original:
         finally:
             session.close()  # Close the session whether or not an error occurred
 
-def empty_tables(session):
+def empty_tables():
+    session = db_connection.get_db_session()
     session.query(AnnotationDB).delete()
     session.query(ImageDB).delete()
     session.query(CategoryDB).delete()
     session.commit()
     session.close()
+
+if __name__ == "__main__":
+    create_tables()
+    print("Tables created successfully")

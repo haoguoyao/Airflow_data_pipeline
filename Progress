@@ -31,14 +31,15 @@ create pydantic models, create helper functions to convert the data to the model
 
 install airflow, test one dag
 reteive images to folder, test image using onnx model
-
-
-Optional: generate poetry.lock file
-pip install pipx
-pipx ensurepath
-pipx install poetry
-poetry init
-poetry add $(cat requirements.txt | tr '\n' ' ')
-
-
 pip install pipdeptree
+Feb 12:
+write pydandic to csv function
+Feb 17:
+convert between pydantic model and sqlalchemy model
+Feb 18:
+YOLOv2 model document is not clear, switch to YOLOv4 model
+test image using onnx model, using a YOLOv4 network, finish the post processing.
+Feb 19:
+write a second DAGS to test function reuse, parameter passing between tasks
+write yolo result to database
+write some test functions
