@@ -4,12 +4,13 @@ from db.db_connections import get_db_session
 from db.db_models import ImageDB, AnnotationDB,CategoryDB
 from sqlalchemy import func
 from s3.s3_access import download_image_from_s3
-from coco.coco_models import Image, convert_category_from_sql_to_pydantic,Annotation, convert_annotation_from_sql_to_pydantic
+import matplotlib.pyplot as plt
 import os
 import csv
-import os
+import pandas as pd
 
-def csv_helper(csv_output_path, session, model_class, conversion_function, batch_size=1000):
+def csv_helper(csv_output_path,model_class, batch_size=1000):
+    session = get_db_session()
     offset = 0
     first_batch = True
     if os.path.exists(csv_output_path):
@@ -24,7 +25,7 @@ def csv_helper(csv_output_path, session, model_class, conversion_function, batch
             break
 
         # Process the batch using the provided conversion function
-        annotations = [conversion_function(record).model_dump_dict() for record in records]
+        annotations = [model_class.convert_from_sql_to_pydantic(record).model_dump_dict() for record in records]
 
         # Write the batch to CSV
         with open(csv_output_path, 'a', newline='') if not first_batch else open(csv_output_path, 'w', newline='') as csvfile:
@@ -39,15 +40,32 @@ def csv_helper(csv_output_path, session, model_class, conversion_function, batch
 
         # Prepare for the next batch
         offset += batch_size
+    session.close()
 
 
-# Usage example
-if __name__ == "__main__":
-    session = get_db_session()  # Assume this function gets your DB session
+def generate_csv_from_db():
     csv_output_path = 'coco_annotations.csv'
     # Pass the conversion function as an argument to csv_helper
-    csv_helper(csv_output_path, session, AnnotationDB, convert_annotation_from_sql_to_pydantic)
+    csv_helper(csv_output_path, AnnotationDB)
     csv_output_path = 'coco_categories.csv'
     # Pass the conversion function as an argument to csv_helper
-    csv_helper(csv_output_path, session, CategoryDB, convert_category_from_sql_to_pydantic)
+    csv_helper(csv_output_path,CategoryDB)
+
+if __name__ == "__main__":
+
+    file_path = 'coco_annotations.csv'
+    df = pd.read_csv(file_path)
+    print(df.head())
+    print(df.info())
+    print(df.describe())
+
+    category_counts = df['category_id'].value_counts()
+    print(category_counts)
+    plt.figure(figsize=(25, 8))  
+    category_counts.plot(kind='bar')
+    plt.title('Category Counts') 
+    plt.xlabel('Category ID')   
+    plt.ylabel('Counts')         
+    plt.savefig('category_counts.png')
+    plt.close()
 

@@ -1,8 +1,8 @@
 
-from db.db_operations import get_random_images
+from db.db_operations import get_random_objects_from_db
 from s3.s3_access import download_image_from_s3
+from db.db_models import ImageDB
 import os
-
 
 
 def download_images(images,path):
@@ -23,7 +23,7 @@ def get_images_local_folder(folder_path):
 
 if __name__ == "__main__":
 
-    images = get_random_images(100)
+    images = get_random_objects_from_db(ImageDB,10)
     print(len(images))
     download_images(images,'ml_model/downloaded_images2/')
 

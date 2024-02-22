@@ -1,45 +1,44 @@
 Feb 10:
-
 Create S3 bucket for coco file
 coco2024
 Create user
-
 region_name="us-west-1"
-
 Create EC2 instance
 ssh -i keypair.pem admin@ec2-52-53-186-227.us-west-1.compute.amazonaws.com
 
 Dowload coco dataset, upload to S3
 wget http://images.cocodataset.org/zips/train2017.zip
 unzip train2017.zip -d train2017
-wget http://images.cocodataset.org/zips/test2017.zip
-unzip train2017.zip -d train2017
-
-wget http://images.cocodataset.org/zips/val2017.zip
-unzip val2017.zip -d val2017
 
 aws s3 cp val2017 s3://coco2024/coco_original/ --recursive
 Get 128Gb Amazon Elastic Block Store (EBS).
-
 create S3 connection through python
 
 Feb 11:
-using sqlalchemy create 3 tables for the cocodataset, images, annotations, categories
+using sqlalchemy create 3 tables for the images, annotations, categories
 write a python script to write the data to the tables
 write code to retrieve images from the tables and S3 bucket
 create pydantic models, create helper functions to convert the data to the models
-
 install airflow, test one dag
 reteive images to folder, test image using onnx model
-pip install pipdeptree
+pip install pipdeptree, solve installation
+
 Feb 12:
 write pydandic to csv function
 Feb 17:
 convert between pydantic model and sqlalchemy model
 Feb 18:
-YOLOv2 model document is not clear, switch to YOLOv4 model
+Inference using Yolov2
+YOLOv2 model document is not clear post processing is not straight forward, switch to YOLOv4 model
 test image using onnx model, using a YOLOv4 network, finish the post processing.
 Feb 19:
-write a second DAGS to test function reuse, parameter passing between tasks
+write a second DAG to test function reusing, parameter passing between tasks
 write yolo result to database
 write some test functions
+write readme
+Feb 20:
+not coding
+Feb 21:
+reconstruct code between db class and pydantic classes
+create data structure for predictions, add two more tables to the database add two more dags, for ploting and model inference
+make slide for presentation

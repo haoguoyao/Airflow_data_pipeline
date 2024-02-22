@@ -20,12 +20,12 @@ def preprocess_image(image, target_size, gt_boxes=None):
     image_padded = image_padded / 255.
 
     if gt_boxes is None:
-        return image_padded
+        return image_padded[np.newaxis, ...].astype(np.float32)
 
     else:
         gt_boxes[:, [0, 2]] = gt_boxes[:, [0, 2]] * scale + dw
         gt_boxes[:, [1, 3]] = gt_boxes[:, [1, 3]] * scale + dh
-        return image_padded, gt_boxes
+        return image_padded[np.newaxis, ...].astype(np.float32), gt_boxes
 
 
 def adjust_annotation_boxes(image: Image, target_size: Tuple[int, int]) -> List[Annotation]:

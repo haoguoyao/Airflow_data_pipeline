@@ -2,13 +2,41 @@ from sqlalchemy import create_engine, Column, Integer, Float, String, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 import db.db_connections as db_connection
-
+from abc import ABCMeta, ABC, abstractmethod
+from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
+from pydantic import BaseModel
 import datetime
+import json
+# Step 1: Create a compatible metaclass
+class CustomMeta(DeclarativeMeta, ABCMeta):
+    pass
+# Step 2: Define a common base class using the compatible metaclass
+Base = declarative_base(metaclass=CustomMeta)
 
+class ConvertibleToPydantic(ABC):
+    @classmethod
+    @abstractmethod
+    def convert_from_sql_to_pydantic(cls,db_object) -> BaseModel:
+        pass
+    
+class CategoryDB(Base,ConvertibleToPydantic):
+    __tablename__ = 'categories'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(50))
+    supercategory = Column(String(50), nullable=True)
+    annotations = relationship("AnnotationDB", back_populates="category")
+    annotation_predictions = relationship("Annotation_predictionDB", back_populates="category")
 
-Base = declarative_base()
+    @classmethod
+    def convert_from_sql_to_pydantic(cls,category):
+        from coco.coco_models import Category
+        return Category(
+            id=category.id,
+            name=category.name,
+            supercategory=category.supercategory
+        )
 
-class ImageDB(Base):
+class ImageDB(Base,ConvertibleToPydantic):
     __tablename__ = 'images'
     id = Column(Integer, primary_key=True)
     width = Column(Integer)
@@ -20,41 +48,106 @@ class ImageDB(Base):
     date_captured = Column(DateTime, default=datetime.datetime.utcnow)
 
     annotations = relationship("AnnotationDB", back_populates="image")
+    @classmethod
+    def convert_from_sql_to_pydantic(cls,image):
+        from coco.coco_models import Image
+        annotations = [AnnotationDB.convert_from_sql_to_pydantic(ann) for ann in image.annotations]
+        return Image(
+            id=image.id,
+            width=image.width,
+            height=image.height,
+            file_name=image.file_name,
+            license=image.license,
+            flickr_url=image.flickr_url,
+            coco_url=image.coco_url,
+            date_captured=image.date_captured.isoformat() if image.date_captured else None,
+            annotations=annotations
+        )
 
-class Image_predictionDB(Base):
-    __tablename__ = 'images_prediction'
-    file_name = Column(String(255), primary_key=True)
-    prediction = Column(JSON)
-
-class AnnotationDB(Base):
+class AnnotationDB(Base,ConvertibleToPydantic):
     __tablename__ = 'annotations'
     id = Column(BigInteger, primary_key=True)
     image_id = Column(Integer, ForeignKey('images.id'), nullable=False)
     category_id = Column(Integer, ForeignKey('categories.id'), nullable=False)
     area = Column(Float)
-    bbox = Column(String(255))  # Consider storing as JSON or creating separate columns
+    bbox = Column(String(255))
     iscrowd = Column(Integer)
-    segmentation = Column(JSON)  # Use JSON for MySQL versions that support it
+    segmentation = Column(JSON)
 
     image = relationship("ImageDB", back_populates="annotations")
     category = relationship("CategoryDB", back_populates="annotations")
 
+    @classmethod
+    def convert_annotation_box_from_sql_to_pydantic(cls,bbox_str)-> BaseModel:
+        from coco.coco_models import AnnotationBox
+        x_min, y_min, width, height = map(float, bbox_str.split(','))
+        return AnnotationBox(x_min=x_min, y_min=y_min, width=width, height=height)
+    @classmethod
+    def convert_from_sql_to_pydantic(cls,annotation)-> BaseModel:
+        from coco.coco_models import Annotation
+        bbox = AnnotationDB.convert_annotation_box_from_sql_to_pydantic(annotation.bbox)
+        return Annotation(
+            id=annotation.id,
+            image_id=annotation.image_id,
+            category_id=annotation.category_id,
+            segmentation=annotation.segmentation,
+            area=annotation.area,
+            bbox=bbox,
+            iscrowd=annotation.iscrowd
+        )
 
-class CategoryDB(Base):
-    __tablename__ = 'categories'
-    id = Column(Integer, primary_key=True)
-    name = Column(String(50))
-    supercategory = Column(String(50), nullable=True)
+    
+class Image_predictionDB(Base,ConvertibleToPydantic):
+    __tablename__ = 'images_prediction'
 
-    annotations = relationship("AnnotationDB", back_populates="category")
+    #id is image name
+    id = Column(String(255), primary_key=True)
+    prediction = Column(JSON)
+    annotations_predictions = relationship("Annotation_predictionDB", back_populates="image_prediction")
+    @classmethod
+    def convert_from_sql_to_pydantic(cls, db_object) -> BaseModel: 
+        if not isinstance(db_object, Image_predictionDB):
+            raise ValueError(f"db_object must be an instance of Image_predictionDB, got {type(db_object)} instead.")
+        from coco.coco_models import ImagePrediction
+        return ImagePrediction(
+            id=db_object.id,
+            prediction=db_object.prediction
+        )
+
+class Annotation_predictionDB(Base,ConvertibleToPydantic):
+    __tablename__ = 'annotations_predictions'
+    id = Column(BigInteger, primary_key=True)
+    category_id = Column(Integer, ForeignKey('categories.id'), nullable=False)
+    crop_name = Column(String(255))
+    bbox = Column(String(255)) 
+    confidence = Column(Float)
+    image_name = Column(String(255), ForeignKey('images_prediction.id'), nullable=False)
+    image_prediction = relationship("Image_predictionDB", back_populates="annotations_predictions")
+    category = relationship("CategoryDB", back_populates="annotation_predictions")
+
+    @classmethod
+    def convert_from_sql_to_pydantic(cls, db_object) -> BaseModel:
+        from coco.coco_models import AnnotationPrediction
+        bbox = cls.convert_annotation_box_from_sql_to_pydantic(db_object.bbox)
+        return AnnotationPrediction(
+            id=db_object.id,
+            category_id=db_object.category_id,
+            crop_name=db_object.crop_name,
+            bbox=bbox,
+            confidence=db_object.confidence,
+            image_name=db_object.image_name
+        )
 
 
 def create_tables():
     engine = db_connection.get_db_engine()
     Base.metadata.create_all(engine)  # Creates tables if they don't already exist
 
+def delete_tables():
+    engine = db_connection.get_db_engine()
+    Base.metadata.reflect(engine)
+    Base.metadata.drop_all(engine)
 
-import json
 
 def store_one_image_prediction(image_prediction):
     prediction_data = [prediction.tolist() for prediction in image_prediction['prediction']]
@@ -63,7 +156,7 @@ def store_one_image_prediction(image_prediction):
 
     session = db_connection.get_db_session()
     new_image_prediction = Image_predictionDB(
-        file_name=image_prediction['file_name'],
+        id=image_prediction['file_name'],
         prediction=prediction_JSON
     )
     session.add(new_image_prediction)
@@ -153,6 +246,8 @@ def empty_tables():
     session.query(AnnotationDB).delete()
     session.query(ImageDB).delete()
     session.query(CategoryDB).delete()
+    session.query(Image_predictionDB).delete()
+    session.query(Annotation_predictionDB).delete()
     session.commit()
     session.close()
 
