@@ -15,7 +15,7 @@ default_args = {
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,
-    'retries': 1,
+    'retries': 0,
     'retry_delay': timedelta(minutes=1),
 }
 def get_random_images_task(numb_images, **kwargs):
@@ -69,23 +69,6 @@ get_random_images_task_in_get_and_dowload_images_dag>>download_random_images_tas
 
 
 
-
-
-onnx_inference_local_folder_dag = DAG(
-    'onnx_inference_local_folder_dag',
-    default_args=default_args,
-    description='inference everything images in local folder using onnx model and store the result to database and s3 bucket',
-    schedule_interval=None,
-    start_date=datetime(2024, 1, 1),
-    catchup=False
-)
-# Define the PythonOperator
-onnx_inference_local_folder_task = PythonOperator(
-    task_id='onnx_inference_local_folder_task',
-    python_callable=test_onnx.onnx_inference_local_folder,
-    op_kwargs={},
-    dag=onnx_inference_local_folder_dag
-)
 
 
 generate_sample_statistics_dag = DAG(

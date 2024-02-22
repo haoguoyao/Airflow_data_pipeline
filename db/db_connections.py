@@ -2,11 +2,6 @@ import mysql.connector
 import sys,os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-# print(os.path.abspath(os.path.join('.')))
-# root_path = os.path.abspath(os.path.join('.'))
-# if root_path not in sys.path:
-#     sys.path.append(root_path)
-# sys.path.append(".")
 import db.db_settings as db_settings
 
 # Database configuration (update this with your database credentials)

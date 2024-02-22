@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
-
+import matplotlib
+matplotlib.use('Agg')
 
 
 from sqlalchemy.orm import sessionmaker
@@ -21,10 +22,8 @@ def plot_areas_histogram():
     plt.title('Histogram of Annotation Areas')
     plt.xlabel('Area')
     plt.ylabel('Frequency')
-    
     plt.grid(True)
     plt.tight_layout()
-    plt.show()
     plt.savefig('ml_model/statistics_plots/annotation_areas_chart.png')
     plt.close()
 

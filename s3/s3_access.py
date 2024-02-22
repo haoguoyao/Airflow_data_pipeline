@@ -2,7 +2,7 @@
 import s3.s3_settings as s3_settings
 from s3.s3_connection import s3_client
 from botocore.exceptions import NoCredentialsError
-from s3.s3_settings import bucket_name, S3_FOLDER
+from s3.s3_settings import bucket_name, S3_FOLDER, S3_withbox_FOLDER, S3_cropped_FOLDER
 
 def upload_to_s3(file_name, bucket_name, object_name):
     try:
@@ -12,13 +12,25 @@ def upload_to_s3(file_name, bucket_name, object_name):
         return False
     return True
 
-# def download_from_s3(bucket_name, object_name, file_name):
-#     try:
-#         s3_client.download_file(bucket_name, object_name, file_name)
-#     except NoCredentialsError:
-#         print("Credentials not available")
-#         return False
-#     return True
+
+
+def delete_s3_folder(folder_name):
+
+    if not folder_name.endswith('/'):
+        folder_name += '/'
+    response = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=folder_name)
+
+    # Delete the objects
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            print(f"Deleting {obj['Key']}")
+            s3_client.delete_object(Bucket=bucket_name, Key=obj['Key'])
+            print(f"Deleted {obj['Key']}")
+
+        print(f"Deleted all objects in folder '{folder_name}' from bucket '{bucket_name}'.")
+    else:
+        print(f"No objects found in folder '{folder_name}'.")
+    return 
 
 
 def download_image_from_s3(file_name, local_path):
@@ -46,6 +58,14 @@ def download_image_from_s3(file_name, local_path):
     except Exception as e:
         print(f"Error downloading {file_name}: {e}")
 
+
+
+def empty_s3_predictions():
+    delete_s3_folder(S3_withbox_FOLDER)
+    delete_s3_folder(S3_cropped_FOLDER)
+    return
+
 if __name__=="__main__":
 
-    upload_to_s3('sample_output_image.jpg',bucket_name,'coco_yolov4_result/sample_output_image.jpg')
+    # upload_to_s3('category_counts.png',bucket_name,'coco_yolov4_result/sample_output_image2.jpg')
+    empty_s3_predictions()

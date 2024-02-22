@@ -2,18 +2,6 @@ from typing import List
 from coco.coco_models import Image
 
 def generate_yolo_labels(image: Image) -> List[str]:
-    """
-    Generate YOLO formatted labels for each annotation in an image.
-    
-    Args:
-    - image: An instance of the Image model with annotations.
-    
-    Returns:
-    - A list of strings, each representing a YOLO formatted label for an annotation.
-    """
-    # Example usage
-    # Assuming `image_with_annotations` is an instance of Image populated with annotations
-    #yolo_labels = generate_yolo_labels(image_with_annotations)
     
     yolo_labels = []
     for annotation in image.annotations:

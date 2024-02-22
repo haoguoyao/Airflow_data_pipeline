@@ -139,14 +139,6 @@ class Annotation_predictionDB(Base,ConvertibleToPydantic):
         )
 
 
-def create_tables():
-    engine = db_connection.get_db_engine()
-    Base.metadata.create_all(engine)  # Creates tables if they don't already exist
-
-def delete_tables():
-    engine = db_connection.get_db_engine()
-    Base.metadata.reflect(engine)
-    Base.metadata.drop_all(engine)
 
 
 def store_one_image_prediction(image_prediction):
@@ -241,6 +233,15 @@ class Store_from_original:
         finally:
             session.close()  # Close the session whether or not an error occurred
 
+def create_tables():
+    engine = db_connection.get_db_engine()
+    Base.metadata.create_all(engine)  # Creates tables if they don't already exist
+
+def delete_tables():
+    engine = db_connection.get_db_engine()
+    Base.metadata.reflect(engine)
+    Base.metadata.drop_all(engine)
+
 def empty_tables():
     session = db_connection.get_db_session()
     session.query(AnnotationDB).delete()
@@ -251,6 +252,14 @@ def empty_tables():
     session.commit()
     session.close()
 
+def empty_prediction_tables():
+
+    session = db_connection.get_db_session()
+    session.query(Image_predictionDB).delete()
+    session.query(Annotation_predictionDB).delete()
+    session.commit()
+    session.close()
+    
 if __name__ == "__main__":
     create_tables()
     print("Tables created successfully")

@@ -38,9 +38,8 @@ class AnnotationPrediction(BaseModel):
     bbox: AnnotationBox
     confidence: float
     image_name: str 
+    
     def convert_to_sql(self) -> Annotation_predictionDB:
-        
-        # Convert bbox Pydantic model to a string representation if needed
         bbox_str = f"{self.bbox.x_min},{self.bbox.y_min},{self.bbox.width},{self.bbox.height}"
         
         return Annotation_predictionDB(

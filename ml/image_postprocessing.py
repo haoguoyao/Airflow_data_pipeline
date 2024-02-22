@@ -7,7 +7,7 @@ import uuid
 import os
 from s3.s3_access import upload_to_s3
 from s3.s3_settings import bucket_name,S3_cropped_FOLDER
-from ml_model.model_settings import model_settings 
+import ml_model.model_settings as model_settings 
 def postprocess_bbbox(pred_bbox, ANCHORS, STRIDES, XYSCALE=[1,1,1]):
     '''define anchor boxes'''
     for i, pred in enumerate(pred_bbox):
@@ -126,13 +126,7 @@ def nms(bboxes, iou_threshold, sigma=0.3, method='nms'):
 
     return best_bboxes
 
-# def read_class_names(class_file_name):
-#     '''loads class name from a file'''
-#     names = {}
-#     with open(class_file_name, 'r') as data:
-#         for ID, name in enumerate(data):
-#             names[ID] = name.strip('\n')
-#     return names
+
 
 def draw_bbox(image, bboxes, show_label=True):
     """

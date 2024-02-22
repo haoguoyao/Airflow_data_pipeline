@@ -11,11 +11,6 @@ from sqlalchemy import func
 from typing import Type, List
 from pydantic import BaseModel
 from db.db_models import ConvertibleToPydantic
-# def get_category_id_map(categories):
-#     category_id_map = {}
-#     for category in categories:
-#         category_id_map[category['id']] = category['name']
-#     return category_id_map
 
 def write_from_annotation(annotation_file):
     coco = COCO(annotation_file)

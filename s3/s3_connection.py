@@ -1,5 +1,6 @@
 import boto3
 import s3.s3_settings as s3_settings
+
 class S3Connection:
     _instance = None
     _s3_client = None
