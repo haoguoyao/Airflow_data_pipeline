@@ -138,8 +138,29 @@ class Annotation_predictionDB(Base,ConvertibleToPydantic):
             image_name=db_object.image_name
         )
 
-
-
+def store_one_db_object(object):
+    session = db_connection.get_db_session()
+    session.add(object)
+    session.commit()
+    session.close()
+def store_db_objects(objects):
+    session = db_connection.get_db_session()
+    for object in objects:
+        session.add(object)
+    session.commit()
+    session.close()
+# def store_one_annotation_prediction(annotation_prediction):
+#     session = db_connection.get_db_session()
+#     new_annotation_prediction = Annotation_predictionDB(
+#         category_id=annotation_prediction['category_id'],
+#         crop_name=annotation_prediction['crop_name'],
+#         bbox=annotation_prediction['bbox'],
+#         confidence=annotation_prediction['confidence'],
+#         image_name=annotation_prediction['image_name']
+#     )
+#     session.add(new_annotation_prediction)
+#     session.commit()
+#     session.close()
 
 def store_one_image_prediction(image_prediction):
     prediction_data = [prediction.tolist() for prediction in image_prediction['prediction']]
@@ -255,8 +276,8 @@ def empty_tables():
 def empty_prediction_tables():
 
     session = db_connection.get_db_session()
-    session.query(Image_predictionDB).delete()
     session.query(Annotation_predictionDB).delete()
+    session.query(Image_predictionDB).delete()
     session.commit()
     session.close()
     

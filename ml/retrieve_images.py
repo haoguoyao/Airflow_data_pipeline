@@ -27,7 +27,3 @@ if __name__ == "__main__":
     print(len(images))
     download_images(images,'ml_model/downloaded_images2/')
 
-    # session = get_db_session()
-    # random_images = session.query(ImageDB).order_by(func.rand()).limit(10).all()
-    # print(len(random_images))
-    # download_images(random_images)

@@ -50,7 +50,7 @@ get_and_dowload_images_dag = DAG(
 get_random_images_task_in_get_and_dowload_images_dag = PythonOperator(
     task_id='get_random_images_task_in_get_and_dowload_images_dag',
     python_callable=get_random_images_task,
-    op_kwargs={'numb_images':100},
+    op_kwargs={'numb_images':500},
     dag=get_and_dowload_images_dag
 )
 

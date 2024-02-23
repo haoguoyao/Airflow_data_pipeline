@@ -5,14 +5,8 @@ from s3.s3_access import empty_s3_predictions
 # Airflow 2.0 and later
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from ml.retrieve_images import download_images
-from db.db_operations import get_random_objects_from_db
 from db.db_models import empty_prediction_tables
-from ml.test_onnx import onnx_inference_local_folder
-import ml.statistics_images as statistics_images
-import cv2
-import os
-import onnxruntime as ort
+
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
