@@ -41,4 +41,6 @@ not coding
 Feb 21:
 reconstruct code between db class and pydantic classes
 create data structure for predictions, add two more tables to the database add two more dags, for ploting and model inference
+
+Feb 22:
 make slide for presentation

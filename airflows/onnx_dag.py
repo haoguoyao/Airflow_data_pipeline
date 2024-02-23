@@ -6,15 +6,10 @@ from s3.s3_access import empty_s3_predictions
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from db.db_models import empty_prediction_tables
+from airflows.workflow import default_args
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
-default_args = {
-    'owner': 'airflow',
-    'depends_on_past': False,
-    'email_on_failure': False,
-    'email_on_retry': False,
-    'retries': 0,
-    'retry_delay': timedelta(minutes=1),
-}
+
 onnx_inference_local_folder_dag = DAG(
     'onnx_inference_local_folder_dag',
     default_args=default_args,
@@ -49,5 +44,19 @@ empty_prediction_images_task = PythonOperator(
     op_kwargs={},
     dag=onnx_inference_local_folder_dag
 )
+trigger_validate_reg_dag = TriggerDagRunOperator(
+    task_id='trigger_validate_reg_dag',
+    trigger_dag_id='validate_reg_dag',  # Specify the ID of the DAG you want to trigger
+    dag=onnx_inference_local_folder_dag,
+)
+trigger_generate_sample_statistics_dag = TriggerDagRunOperator(
+    task_id='trigger_generate_sample_statistics_dag',
+    trigger_dag_id='generate_sample_statistics_dag',  # Specify the ID of the DAG you want to trigger
+    dag=onnx_inference_local_folder_dag,
+)
+# Define tasks and dependencies in dag1 as needed
+# End dag1 with the TriggerDagRunOperator
+trigger_validate_reg_dag
+trigger_generate_sample_statistics_dag
 empty_prediction_images_task>>onnx_inference_local_folder_task
 empty_prediction_tables_task>>onnx_inference_local_folder_task

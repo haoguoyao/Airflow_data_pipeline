@@ -41,7 +41,7 @@ class ImageDB(Base,ConvertibleToPydantic):
     id = Column(Integer, primary_key=True)
     width = Column(Integer)
     height = Column(Integer)
-    file_name = Column(String(255))
+    file_name = Column(String(255),unique=True, nullable=False)
     license = Column(Integer, nullable=True)
     flickr_url = Column(String(255), nullable=True)
     coco_url = Column(String(255), nullable=True)
@@ -109,9 +109,13 @@ class Image_predictionDB(Base,ConvertibleToPydantic):
         if not isinstance(db_object, Image_predictionDB):
             raise ValueError(f"db_object must be an instance of Image_predictionDB, got {type(db_object)} instead.")
         from coco.coco_models import ImagePrediction
+
+
+        annotations = [Annotation_predictionDB.convert_from_sql_to_pydantic(ann) for ann in db_object.annotations_predictions]
         return ImagePrediction(
             id=db_object.id,
-            prediction=db_object.prediction
+            prediction=json.loads(db_object.prediction),
+            annotations_prediction = annotations
         )
 
 class Annotation_predictionDB(Base,ConvertibleToPydantic):
@@ -124,6 +128,12 @@ class Annotation_predictionDB(Base,ConvertibleToPydantic):
     image_name = Column(String(255), ForeignKey('images_prediction.id'), nullable=False)
     image_prediction = relationship("Image_predictionDB", back_populates="annotations_predictions")
     category = relationship("CategoryDB", back_populates="annotation_predictions")
+    @classmethod
+    def convert_annotation_box_from_sql_to_pydantic(cls,bbox_str)-> BaseModel:
+        bbox_str = json.loads(bbox_str)
+        from coco.coco_models import AnnotationBox
+        # return AnnotationBox(x_min=bbox_str[0], y_min=bbox_str[1], width=bbox_str[2]-bbox_str[0], height=bbox_str[3]-bbox_str[1])
+        return AnnotationBox(x_min=bbox_str[0], y_min=bbox_str[1], width=bbox_str[2], height=bbox_str[3])
 
     @classmethod
     def convert_from_sql_to_pydantic(cls, db_object) -> BaseModel:

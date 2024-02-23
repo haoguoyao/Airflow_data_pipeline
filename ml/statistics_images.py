@@ -35,3 +35,4 @@ def plot_prediction_confidence_histogram():
 if __name__ == "__main__":
 
     plot_prediction_confidence_histogram()
+    plot_areas_histogram()

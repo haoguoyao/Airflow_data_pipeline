@@ -22,19 +22,12 @@ class AnnotationBox(BaseModel):
 
     def convert_annotation_box_to_string(self) -> str:
         return f"{self.x_min},{self.y_min},{self.width},{self.height}"
-class ImagePrediction(BaseModel):
-    id: str  # Assuming id is the image name
-    prediction: dict
-    def convert_to_sql(self) -> Image_predictionDB:
-        return Image_predictionDB(
-            id=self.id,
-            prediction=self.prediction
-        )
+
 
 class AnnotationPrediction(BaseModel):
     id: int
     category_id: int
-    crop_url: str
+    crop_name: str
     bbox: AnnotationBox
     confidence: float
     image_name: str 
@@ -45,12 +38,23 @@ class AnnotationPrediction(BaseModel):
         return Annotation_predictionDB(
             id=self.id,
             category_id=self.category_id,
-            crop_url=self.crop_url,
+            crop_name=self.crop_name,
             bbox=bbox_str,
             confidence=self.confidence,
             image_name=self.image_name
         )
-
+class ImagePrediction(BaseModel):
+    id: str  # Assuming id is the image name
+    prediction: list
+    annotations_prediction: List[AnnotationPrediction] = Field(default_factory=list)
+    def convert_to_sql(self) -> Image_predictionDB:
+        image_predictdb = Image_predictionDB(
+            id=self.id,
+            prediction=self.prediction
+        )
+        if self.annotations_prediction:
+            image_predictdb.annotations_prediction = [ann.convert_annotation_to_sql() for ann in self.annotations_prediction]    
+        return 
 class Annotation(BaseModel):
     id: int
     image_id: int
@@ -130,6 +134,7 @@ class Image(BaseModel):
         )
         
         # Convert annotations if they exist
+        #TODO
         if self.annotations:
             image.annotations = [ann.convert_annotation_to_sql() for ann in self.annotations]    
         return image
@@ -145,51 +150,3 @@ class Image(BaseModel):
 class COCODataset(BaseModel):
     images: List[Image]
     categories: List[Category]
-
-
-# def convert_annotation_box_from_sql_to_pydantic(bbox_str) -> AnnotationBox:
-#     """
-#     Converts a bounding box string from the database to a Pydantic model.
-#     Assume bbox_str is a comma-separated string: "x_min,y_min,width,height"
-#     """
-#     x_min, y_min, width, height = map(float, bbox_str.split(','))
-#     return AnnotationBox(x_min=x_min, y_min=y_min, width=width, height=height)
-
-# def convert_annotation_from_sql_to_pydantic(annotation) -> Annotation:
-#     """
-#     Convert a single SQLAlchemy Annotation instance to a Pydantic model.
-#     """
-#     bbox = convert_annotation_box_from_sql_to_pydantic(annotation.bbox)
-#     return Annotation(
-#         id=annotation.id,
-#         image_id=annotation.image_id,
-#         category_id=annotation.category_id,
-#         segmentation=annotation.segmentation,
-#         area=annotation.area,
-#         bbox=bbox,
-#         iscrowd=annotation.iscrowd
-#     )
-# def convert_category_from_sql_to_pydantic(category) -> Category:
-
-#     return Category(
-#         id=category.id,
-#         name=category.name,
-#         supercategory=category.supercategory
-#     )
-
-# def convert_image_from_sql_to_pydantic(image) -> Image:
-#     """
-#     Convert a single SQLAlchemy Image instance to a Pydantic model.
-#     """
-#     annotations = [convert_annotation_from_sql_to_pydantic(ann) for ann in image.annotations]
-#     return Image(
-#         id=image.id,
-#         width=image.width,
-#         height=image.height,
-#         file_name=image.file_name,
-#         license=image.license,
-#         flickr_url=image.flickr_url,
-#         coco_url=image.coco_url,
-#         date_captured=image.date_captured.isoformat() if image.date_captured else None,
-#         annotations=annotations
-#     )

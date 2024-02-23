@@ -66,6 +66,6 @@ if __name__ == "__main__":
     plt.title('Category Counts') 
     plt.xlabel('Category ID')   
     plt.ylabel('Counts')         
-    plt.savefig('category_counts.png')
+    plt.savefig('ml_model/statistics_plots/category_counts.png')
     plt.close()
 

@@ -11,7 +11,7 @@ import ml.test_onnx as test_onnx
 import ml.statistics_images as statistics_images
 # Define the default arguments for the DAG
 default_args = {
-    'owner': 'airflow',
+    'owner': 'guoyao',
     'depends_on_past': False,
     'email_on_failure': False,
     'email_on_retry': False,

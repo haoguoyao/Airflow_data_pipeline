@@ -66,6 +66,22 @@ def get_objects_in_batches_from_db(model_class:Type[ConvertibleToPydantic], batc
     return all_converted_objects
 
 
+def get_random_objects_from_db(model_class: Type[ConvertibleToPydantic],size:int) -> List[BaseModel]:
+    session = get_db_session()
+    # Ensure that the model_class actually refers to an SQLAlchemy model with the expected class method
+    random_objects = session.query(model_class).order_by(func.rand()).limit(size).all() 
+    converted_objects = [model_class.convert_from_sql_to_pydantic(an_object) for an_object in random_objects]
+    session.close()
+    return converted_objects
+
+
+def query_images_by_filenames(file_names: list):
+    session = get_db_session()
+    images = session.query(ImageDB).filter(ImageDB.file_name.in_(file_names)).all()
+    converted_objects = [ImageDB.convert_from_sql_to_pydantic(an_object) for an_object in images]
+    session.close()
+    return converted_objects
+
 # def get_random_images(numb_images):
 #     session = get_db_session()
 #     random_images = session.query(ImageDB).order_by(func.rand()).limit(numb_images).all()
