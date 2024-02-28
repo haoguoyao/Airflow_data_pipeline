@@ -63,15 +63,16 @@ def onnx_inference_local_folder():
             annotation_prediction['category_id'] = convert_id(int(bbox[5]))
             annotation_prediction['crop_name'] = crop_name
             bbox_lst = bbox[:4].tolist()
-            annotation_prediction['bbox'] = json.dumps([bbox_lst[0],bbox_lst[1],bbox_lst[2],bbox_lst[3]])
+            annotation_prediction['bbox'] = json.dumps([bbox_lst[0],bbox_lst[1],bbox_lst[2]-bbox_lst[0],bbox_lst[3]-bbox_lst[1]])
             annotation_prediction['confidence'] = bbox[4]
             annotation_prediction['image_name'] = os.path.basename(image_url)
             new_annotation_prediction = Annotation_predictionDB(
-            category_id=annotation_prediction['category_id'],
-            crop_name=annotation_prediction['crop_name'],
-            bbox=annotation_prediction['bbox'],
-            confidence=annotation_prediction['confidence'],
-            image_name=annotation_prediction['image_name'])
+                category_id=annotation_prediction['category_id'],
+                crop_name=annotation_prediction['crop_name'],
+                bbox=annotation_prediction['bbox'],
+                confidence=annotation_prediction['confidence'],
+                image_name=annotation_prediction['image_name']
+            )
             annotations.append(new_annotation_prediction)
         
 

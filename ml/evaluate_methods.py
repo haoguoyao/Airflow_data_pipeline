@@ -27,66 +27,31 @@ def calculate_iou(boxA: AnnotationBox, boxB: AnnotationBox) -> float:
     iou = interArea / float(boxAArea + boxBArea - interArea)
     return iou
 
-# def match_predictions_to_ground_truth(ground_truths: List[Annotation], predictions: List[AnnotationPrediction]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-#     cost_matrix = np.zeros((len(ground_truths), len(predictions)))
+def match_predictions_to_ground_truth(ground_truths: List[Annotation], predictions: List[AnnotationPrediction]) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    cost_matrix = np.zeros((len(ground_truths), len(predictions)))
 
-#     for i, gt in enumerate(ground_truths):
-#         for j, pred in enumerate(predictions):
-#             cost_matrix[i, j] = -calculate_iou(gt.bbox, pred.bbox)
+    for i, gt in enumerate(ground_truths):
+        for j, pred in enumerate(predictions):
+            cost_matrix[i, j] = -calculate_iou(gt.bbox, pred.bbox)
 
-#     row_ind, col_ind = linear_sum_assignment(cost_matrix)
+    row_ind, col_ind = linear_sum_assignment(cost_matrix)
 
-#     return row_ind, col_ind, -cost_matrix[row_ind, col_ind]
-# def calculate_confusion_matrix(ground_truths: List[Annotation], predictions: List[AnnotationPrediction], iou_threshold: float = 0.5):
-#     tp, fp, fn = 0, 0, len(ground_truths)
-#     matched_rows, matched_cols, ious = match_predictions_to_ground_truth(ground_truths, predictions)
+    return row_ind, col_ind, -cost_matrix[row_ind, col_ind]
+def calculate_confusion_matrix(ground_truths: List[Annotation], predictions: List[AnnotationPrediction], iou_threshold: float = 0.5):
+    tp, fp, fn = 0, 0, len(ground_truths)
+    matched_rows, matched_cols, ious = match_predictions_to_ground_truth(ground_truths, predictions)
 
-#     for iou in ious:
-#         if iou >= iou_threshold:
-#             tp += 1
-#             fn -= 1
-#         else:
-#             fp += 1
+    for iou in ious:
+        if iou >= iou_threshold:
+            tp += 1
+            fn -= 1
+        else:
+            fp += 1
 
-#     # Assuming all unmatched predictions are false positives
-#     fp += (len(predictions) - len(matched_cols))
+    # Assuming all unmatched predictions are false positives
+    fp += (len(predictions) - len(matched_cols))
+    return {"TP": tp, "FP": fp, "FN": fn}
 
-#     return {"TP": tp, "FP": fp, "FN": fn}
-
-# def calculate_class_wise_iou(ground_truths: List[Annotation], predictions: List[AnnotationPrediction], class_id: int) -> np.ndarray:
-#     # Filter ground truths and predictions by class_id
-#     gt_filtered = [gt for gt in ground_truths if gt.category_id == class_id]
-#     pred_filtered = [pred for pred in predictions if pred.category_id == class_id]
-    
-#     # Initialize cost matrix
-#     cost_matrix = np.zeros((len(gt_filtered), len(pred_filtered)))
-    
-#     for i, gt in enumerate(gt_filtered):
-#         for j, pred in enumerate(pred_filtered):
-#             cost_matrix[i, j] = -calculate_iou(gt.bbox, pred.bbox)  # Assuming calculate_iou is defined as before
-    
-#     return cost_matrix, gt_filtered, pred_filtered
-
-# def match_and_calculate_for_class(ground_truths: List[Annotation], predictions: List[AnnotationPrediction], class_id: int, iou_threshold: float = 0.5) -> Dict[str, int]:
-#     cost_matrix, gt_filtered, pred_filtered = calculate_class_wise_iou(ground_truths, predictions, class_id)
-    
-#     if not cost_matrix.size:
-#         return {"TP": 0, "FP": 0, "FN": len(gt_filtered)}
-    
-#     row_ind, col_ind = linear_sum_assignment(cost_matrix)
-#     matched_ious = -cost_matrix[row_ind, col_ind]
-    
-#     tp = sum(iou >= iou_threshold for iou in matched_ious)
-#     fp = len(pred_filtered) - tp
-#     fn = len(gt_filtered) - tp
-    
-#     return {"TP": tp, "FP": fp, "FN": fn}
-
-# def calculate_multi_class_confusion_matrix(ground_truths: List[Annotation], predictions: List[AnnotationPrediction], class_ids: List[int], iou_threshold: float = 0.5) -> Dict[int, Dict[str, int]]:
-#     results = {}
-#     for class_id in class_ids:
-#         results[class_id] = match_and_calculate_for_class(ground_truths, predictions, class_id, iou_threshold)
-#     return results
 def find_correct_predictions(ground_truths: List[Annotation], predictions: List[AnnotationPrediction]) -> List[Annotation]:
     correct_predictions = []
     
@@ -101,8 +66,9 @@ def find_correct_predictions(ground_truths: List[Annotation], predictions: List[
                     correct_predictions.append((gt,pred))
     
     return correct_predictions
-if __name__ == "__main__":
-    image_predictions = get_random_objects_from_db(Image_predictionDB, 200)
+
+def evaluate_width_regression(evaluate_size: int = 200):
+    image_predictions = get_random_objects_from_db(Image_predictionDB, evaluate_size)
     image_names = []
  
     for image in image_predictions:
@@ -115,9 +81,6 @@ if __name__ == "__main__":
     for i in range(len(image_predictions)):
 
         correct_predictions = find_correct_predictions(images_truth[i].annotations, image_predictions[i].annotations_prediction)
-        # print(len(images_truth[i].annotations))
-        # print(len(image_predictions[i].annotations_prediction))
-        # print(len(correct_predictions))
         for j in range(len(correct_predictions)):
             truth_width.append(correct_predictions[j][0].bbox.width)
             predicted_width.append(correct_predictions[j][1].bbox.width)
@@ -130,3 +93,32 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig('ml_model/statistics_plots/scatter_validation_width.png')
     plt.close()
+
+def evaluate_classification(evaluate_size: int = 200):
+    image_predictions = get_random_objects_from_db(Image_predictionDB, evaluate_size)
+    image_names = []
+ 
+    for image in image_predictions:
+        image_names.append(image.id)
+    images_truth = query_images_by_filenames(image_names)
+    image_predictions.sort(key=lambda image_prediction: image_prediction.id)
+    images_truth.sort(key=lambda image: image.file_name)
+    tp = 0
+    fp = 0
+    fn = 0
+    for i in range(len(image_predictions)):
+        confusion_matrix = calculate_confusion_matrix(images_truth[i].annotations, image_predictions[i].annotations_prediction)
+        tp += confusion_matrix['TP']
+        fp += confusion_matrix['FP']
+        fn += confusion_matrix['FN']
+    precision = tp/(tp+fp)
+    recall = tp/(tp+fn)
+    f1_score = 2*precision*recall/(precision+recall)
+    print("Precision:",precision)
+    print("Recall:",recall)
+    print("F1 Score:",f1_score)
+
+if __name__ == "__main__":
+    evaluate_width_regression()
+    evaluate_classification()
+
